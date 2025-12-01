@@ -1,0 +1,121 @@
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+
+st.set_page_config(page_title="Tax & Investment App + Budget Visualization",
+                   layout="wide")
+
+# -------------------------
+# Load Dataset
+# -------------------------
+@st.cache_data
+def load_data():
+    return pd.read_csv("Budget 2014-2025.csv")
+
+df = load_data()
+
+# -------------------------------------------
+# TAX CALCULATOR FUNCTION
+# -------------------------------------------
+def calculate_tax(income):
+    if income <= 250000:
+        return 0
+    elif income <= 500000:
+        return (income - 250000) * 0.05
+    elif income <= 1000000:
+        return 12500 + (income - 500000) * 0.20
+    else:
+        return 112500 + (income - 1000000) * 0.30
+
+# -------------------------------------------
+# INVESTMENT CALCULATOR FUNCTION
+# -------------------------------------------
+def investment_future_value(principal, rate, years):
+    return principal * ((1 + rate/100) ** years)
+
+# -------------------------------------------
+# SIDEBAR MENU
+# -------------------------------------------
+st.sidebar.title("Menu")
+page = st.sidebar.radio(
+    "Choose a section:",
+    ["📊 Budget Visualization", "💰 Tax Calculator", "📈 Investment Calculator"]
+)
+
+# =====================================================================================
+# 1️⃣ BUDGET VISUALIZATION
+# =====================================================================================
+if page == "📊 Budget Visualization":
+    st.title("📊 Budget Allocation Visualization (2014–2025)")
+
+    # Select Year from Dataset
+    years = sorted(df["Year"].unique())
+    selected_year = st.selectbox("Select a Year", years)
+
+    df_year = df[df["Year"] == selected_year]
+
+    st.subheader(f"Budget Summary for {selected_year}")
+    st.dataframe(df_year)
+
+    # Chart 1 – Total Plan & Non-Plan (per Ministry)
+    st.subheader("Ministry-wise Total Budget")
+
+    fig, ax = plt.subplots()
+    ax.bar(df_year["Ministry Name"], df_year["Total Plan & Non-Plan"])
+    plt.xticks(rotation=90)
+    ax.set_ylabel("Amount")
+    ax.set_title(f"Total Budget by Ministry ({selected_year})")
+
+    st.pyplot(fig)
+
+    # Chart 2 – Revenue Plan vs Non-Plan (overall)
+    st.subheader("Revenue: Plan vs Non-Plan (Sum for the Year)")
+
+    total_plan = df_year["Revenue (Plan)"].sum()
+    total_non_plan = df_year["Revenue (Non-Plan)"].sum()
+
+    fig2, ax2 = plt.subplots()
+    ax2.bar(["Revenue (Plan)", "Revenue (Non-Plan)"], [total_plan, total_non_plan])
+    ax2.set_title(f"Revenue Breakdown ({selected_year})")
+    st.pyplot(fig2)
+
+# =====================================================================================
+# 2️⃣ TAX CALCULATOR
+# =====================================================================================
+elif page == "💰 Tax Calculator":
+    st.title("💰 Income Tax Calculator (India)")
+
+    income = st.number_input("Enter your Annual Income (₹)", min_value=0)
+
+    if st.button("Calculate Tax"):
+        tax = calculate_tax(income)
+        st.success(f"Your payable tax = ₹ {tax:,.2f}")
+
+# =====================================================================================
+# 3️⃣ INVESTMENT CALCULATOR
+# =====================================================================================
+elif page == "📈 Investment Calculator":
+    st.title("📈 Investment Growth Calculator")
+
+    principal = st.number_input("Initial Investment Amount (₹)", min_value=0.0)
+    rate = st.number_input("Annual Interest Rate (%)", min_value=0.0)
+    years = st.number_input("Investment Duration (Years)", min_value=1)
+
+    if st.button("Calculate Future Value"):
+        fv = investment_future_value(principal, rate, years)
+        st.success(f"Future Value = ₹ {fv:,.2f}")
+
+        # Chart
+        st.subheader("Growth Over Time")
+        timeline = list(range(0, years + 1))
+        values = [investment_future_value(principal, rate, t) for t in timeline]
+
+        fig3, ax3 = plt.subplots()
+        ax3.plot(timeline, values)
+        ax3.set_xlabel("Years")
+        ax3.set_ylabel("Value (₹)")
+        ax3.set_title("Investment Growth Curve")
+        st.pyplot(fig3)
+streamlit
+pandas
+matplotlib
